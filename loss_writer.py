@@ -124,15 +124,22 @@ class Writer():
         self.kwargs = kwargs
 
     def register_losses(self,**kwargs):
-        if self.task != 'fine_tune':
-            self.losses = {'intensity':
-                            {'is_active': kwargs.get('intensity_active'),'criterion': L1Loss(),'thresholds': [0.9, 0.99],'factor': kwargs.get('intensity_factor')},
-                           'perceptual':
-                            {'is_active': kwargs.get('perceptual_active'),'criterion': Percept_Loss(**kwargs),'memory_percent': kwargs.get('perceptual_memory'),'factor': kwargs.get('perceptual_factor')},
-                           'reconstruction':
-                            {'is_active': kwargs.get('reconstruction_active'),'criterion': L1Loss(),'factor': kwargs.get('reconstruction_factor')}}
-        else:
-            self.losses = {'binary_classification':
-                            {'is_active': kwargs.get('binary_classification_active'),'criterion': BCELoss(),'factor': kwargs.get('binary_classification_factor')},
-                           'regression':
-                            {'is_active': kwargs.get('regression_active'),'criterion': L1Loss(),'factor': kwargs.get('regression_factor')}}
+        self.losses = {'intensity':
+                           {'criterion':L1Loss(),'thresholds':[0.9, 0.99],'factor':1},
+                       'perceptual':
+                           {'criterion': Percept_Loss(**kwargs),'memory_percent':0.25,'factor':1},
+                       'reconstruction':
+                           {'criterion':L1Loss(),'factor':1},
+                       'binary_classification':
+                           {'criterion':BCELoss(),'factor':1},
+                       'regression':
+                           {'criterion':L1Loss(),'factor':1}}
+        if 'reconstruction' in kwargs.get('task').lower():
+            self.losses['intensity']['is_active'] = True
+            self.losses['perceptual']['is_active'] = True
+            self.losses['reconstruction']['is_active'] = True
+        elif kwargs.get('task').lower() == 'fine_tune':
+            if kwargs.get('fine_tune_task').lower() == 'regression':
+                self.losses['regression']['is_active'] = True
+            else:
+                self.losses['binary_classification']['is_active'] = True

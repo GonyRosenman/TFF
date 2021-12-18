@@ -48,14 +48,13 @@ class Trainer():
             print(text)
 
     def create_model(self):
-        if self.task == 'fine_tune':
-            self.model = Encoder_Transformer_finetune(**self.kwargs)
-        else:
-            dim = self.train_loader.dataset.dataset.get_input_shape()
-            if self.task == 'autoencoder_reconstruction':
-                self.model = AutoEncoder(dim,**self.kwargs)
-            else:
-                self.model = Encoder_Transformer_Decoder(dim,**self.kwargs)
+        dim = self.train_loader.dataset.dataset.get_input_shape()
+        if self.task.lower() == 'fine_tune':
+            self.model = Encoder_Transformer_finetune(dim,**self.kwargs)
+        elif self.task.lower() == 'autoencoder_reconstruction':
+            self.model = AutoEncoder(dim,**self.kwargs)
+        elif self.task.lower() == 'transformer_reconstruction':
+            self.model = Encoder_Transformer_Decoder(dim,**self.kwargs)
         if self.cuda:
             self.model = self.model.cuda()
 
@@ -178,8 +177,8 @@ class Trainer():
         perceptual_loss = self.perceptual_loss_func(output_dict['reconstructed_fmri_sequence'],fmri_sequence)
         return perceptual_loss
 
-    def compute_binary_c(self,input_dict,output_dict):
-        binary_loss = self.binary_c_loss_func(output_dict['binary_c'].squeeze(), input_dict['subject_binary_c'].squeeze())
+    def compute_binary_classification(self,input_dict,output_dict):
+        binary_loss = self.binary_classification_loss_func(output_dict['binary_classification'].squeeze(), input_dict['subject_binary_classification'].squeeze())
         return binary_loss
 
     def compute_regression(self,input_dict,output_dict):

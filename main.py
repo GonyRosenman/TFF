@@ -17,20 +17,12 @@ def get_arguments(base_path):
     parser.add_argument('--workers', default=2)
     parser.add_argument('--log_dir', type=str, default=os.path.join(base_path, 'runs'))
     parser.add_argument('--random_TR', default=True)
-    parser.add_argument('--perceptual_active', default=True)
-    parser.add_argument('--perceptual_factor', default=1)
-    parser.add_argument('--perceptual_memory', default=1)
-    parser.add_argument('--intensity_active', default=True)
-    parser.add_argument('--intensity_factor', default=1)
-    parser.add_argument('--reconstruction_active', default=True)
-    parser.add_argument('--reconstruction_factor', default=1)
     parser.add_argument('--fine_tune_task',
                         default='regression',
-                        choices=['regression','binary_c'],
-                        help='fine tune model objective. choose binary_c in case of a binary classification task')
+                        choices=['regression','binary_classification'],
+                        help='fine tune model objective. choose binary_classification in case of a binary classification task')
     parser.add_argument('--pretrain_split', default=0.9)
     parser.add_argument('--running_mean_size', default=5000)
-    parser.add_argument('--sequence_length', default=20)
     parser.add_argument('--weights_path', default=None)
 
 
@@ -44,6 +36,7 @@ def get_arguments(base_path):
     parser.add_argument('--lr_init_phase1', default=1e-3)
     parser.add_argument('--lr_gamma_phase1', default=0.97)
     parser.add_argument('--lr_step_phase1', default=7500)
+    parser.add_argument('--sequence_length_phase1', default=1)
 
     ##phase 2
     parser.add_argument('--task_phase2', type=str, default='transformer_reconstruction')
@@ -54,6 +47,7 @@ def get_arguments(base_path):
     parser.add_argument('--weight_decay_phase2', default=1e-7)
     parser.add_argument('--lr_gamma_phase2', default=0.97)
     parser.add_argument('--lr_step_phase2', default=1500)
+    parser.add_argument('--sequence_length_phase2', default=20)
 
     ##phase 3
     parser.add_argument('--task_phase3', type=str, default='fine_tune')
@@ -65,6 +59,7 @@ def get_arguments(base_path):
     parser.add_argument('--lr_init_phase3', default=3e-5)
     parser.add_argument('--lr_gamma_phase3', default=0.9)
     parser.add_argument('--lr_step_phase3', default=1500)
+    parser.add_argument('--sequence_length_phase3', default=20)
     args = parser.parse_args()
     return args
 

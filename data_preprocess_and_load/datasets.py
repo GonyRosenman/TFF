@@ -94,7 +94,7 @@ class rest_1200_3D(BaseDataset):
         y = self.load_sequence(path_to_TRs,filename_TR)
         if self.augment is not None:
             y = self.augment(y)
-        return {'fmri_sequence':y,'subject':subj,'subject_binary_c':self.label_dict[gender],'subject_regression':age}
+        return {'fmri_sequence':y,'subject':subj,'subject_binary_classification':self.label_dict[gender],'subject_regression':age}
 
 
 class ucla(BaseDataset):
@@ -127,5 +127,5 @@ class ucla(BaseDataset):
         y = self.load_sequence(TRs_path,TR)
         if self.augment is not None:
             y = self.augment(y)
-        input_dict = {'fmri_sequence':y,'subject':subj_num ,'subject_binary_c':diagnosis , 'TR':int(TR.split('_')[1])}
+        input_dict = {'fmri_sequence':y,'subject':subj_num ,'subject_binary_classification':diagnosis , 'TR':int(TR.split('_')[1])}
         return input_dict
