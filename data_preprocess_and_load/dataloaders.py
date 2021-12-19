@@ -11,7 +11,7 @@ def get_params(**kwargs):
               'shuffle': True,
               'num_workers': workers,
               'drop_last': True,
-              'pin_memory': True if cuda else False,
+              'pin_memory': False,#True if cuda else False,
               'persistent_workers': True if workers > 0 and cuda else False}
     return params
 

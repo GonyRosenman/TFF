@@ -9,6 +9,7 @@ class BaseDataset(Dataset):
     def __init__(self):
         super().__init__()
     def register_args(self,**kwargs):
+        self.device = torch.device('cuda') if kwargs.get('cuda') else torch.device('cpu')
         self.index_l = []
         self.norm = 'global_normalize'
         self.complementary = 'per_voxel_normalize'
@@ -47,9 +48,9 @@ class BaseDataset(Dataset):
     def load_sequence(self, TRs_path, TR):
         # the logic of this function is that always the first channel corresponds to global norm and if there is a second channel it belongs to per voxel.
         TR = self.determine_TR(TRs_path,TR)
-        y = torch.cat([torch.load(os.path.join(TRs_path, self.TR_string(TR, x))).unsqueeze(0) for x in self.TR_skips], dim=4)
+        y = torch.cat([torch.load(os.path.join(TRs_path, self.TR_string(TR, x)),map_location=self.device).unsqueeze(0) for x in self.TR_skips], dim=4)
         if self.complementary is not None:
-            y1 = torch.cat([torch.load(os.path.join(TRs_path, self.TR_string(TR, x)).replace(self.norm, self.complementary)).unsqueeze(0)
+            y1 = torch.cat([torch.load(os.path.join(TRs_path, self.TR_string(TR, x)).replace(self.norm, self.complementary),map_location=self.device).unsqueeze(0)
                             for x in self.TR_skips], dim=4)
             y1[y1!=y1] = 0
             y = torch.cat([y, y1], dim=0)
@@ -101,7 +102,7 @@ class ucla(BaseDataset):
     def __init__(self, **kwargs):
         super(ucla, self).__init__()
         self.register_args(**kwargs)
-        self.root = r'D:\users\Gony\ucla\ucla\ucla\output'#os.path.join(args.base_path,'ucla','ucla','ucla','output')
+        self.root = os.path.join(args.base_path,'ucla','ucla','ucla','output')
         self.meta_data = pd.read_csv(os.path.join(self.root,'participants.tsv'),sep='\t')
         self.data_dir = os.path.join(self.root, 'rest')
         self.subjects = len(os.listdir(self.data_dir))
