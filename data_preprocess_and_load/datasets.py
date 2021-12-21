@@ -84,19 +84,19 @@ class rest_1200_3D(BaseDataset):
             filename = filename[:filename.find('TR')+3]
 
             for k in range(0,session_duration,self.stride):
-                self.index_l.append((i, subject, age , gender , path_to_TRs , filename + str(k),session_duration))
+                self.index_l.append((i, subject, path_to_TRs,filename + str(k),session_duration, age , gender))
 
     def __len__(self):
         N = len(self.index_l)
         return N
 
     def __getitem__(self, index):
-        subj, subj_name, age, gender , path_to_TRs , filename_TR , session_duration = self.index_l[index]
+        subj, subj_name, path_to_TRs, TR , session_duration, age, gender = self.index_l[index]
         age = self.label_dict[age] if isinstance(age,str) else age.float()
-        y = self.load_sequence(path_to_TRs,filename_TR)
+        y = self.load_sequence(path_to_TRs,TR)
         if self.augment is not None:
             y = self.augment(y)
-        return {'fmri_sequence':y,'subject':subj,'subject_binary_classification':self.label_dict[gender],'subject_regression':age}
+        return {'fmri_sequence':y,'subject':subj,'subject_binary_classification':self.label_dict[gender],'subject_regression':age,'TR':int(TR.split('_')[1])}
 
 
 class ucla(BaseDataset):
