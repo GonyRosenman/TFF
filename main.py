@@ -13,53 +13,54 @@ def get_arguments(base_path):
     parser.add_argument('--base_path', default=base_path)
     parser.add_argument('--seed', type=int, default=55555555)
     parser.add_argument('--dataset_name', type=str, default="ucla")
-    parser.add_argument('--cuda', default=False)
-    parser.add_argument('--workers', default=2)
+    parser.add_argument('--cuda', default=True)
     parser.add_argument('--log_dir', type=str, default=os.path.join(base_path, 'runs'))
     parser.add_argument('--random_TR', default=True)
     parser.add_argument('--fine_tune_task',
-                        default='regression',
+                        default='binary_classification',
                         choices=['regression','binary_classification'],
                         help='fine tune model objective. choose binary_classification in case of a binary classification task')
     parser.add_argument('--pretrain_split', default=0.9)
     parser.add_argument('--running_mean_size', default=5000)
-    parser.add_argument('--weights_path', default=None)
 
 
     ##phase 1
     parser.add_argument('--task_phase1', type=str, default='autoencoder_reconstruction')
     parser.add_argument('--batch_size_phase1', type=int, default=4)
-    parser.add_argument('--validation_frequency_phase1', type=int, default=30000)
+    parser.add_argument('--validation_frequency_phase1', type=int, default=1000)
     parser.add_argument('--nEpochs_phase1', type=int, default=1)
     parser.add_argument('--augment_prob_phase1', default=0)
     parser.add_argument('--weight_decay_phase1', default=1e-7)
     parser.add_argument('--lr_init_phase1', default=1e-3)
     parser.add_argument('--lr_gamma_phase1', default=0.97)
-    parser.add_argument('--lr_step_phase1', default=7500)
+    parser.add_argument('--lr_step_phase1', default=500)
     parser.add_argument('--sequence_length_phase1', default=1)
+    parser.add_argument('--workers_phase1', default=4)
 
     ##phase 2
     parser.add_argument('--task_phase2', type=str, default='transformer_reconstruction')
-    parser.add_argument('--batch_size_phase2', type=int, default=4)
-    parser.add_argument('--validation_frequency_phase2', type=int, default=30000)
-    parser.add_argument('--nEpochs_phase2', type=int, default=1)
+    parser.add_argument('--batch_size_phase2', type=int, default=1)
+    parser.add_argument('--validation_frequency_phase2', type=int, default=500)
+    parser.add_argument('--nEpochs_phase2', type=int, default=3)
     parser.add_argument('--augment_prob_phase2', default=0)
     parser.add_argument('--weight_decay_phase2', default=1e-7)
     parser.add_argument('--lr_gamma_phase2', default=0.97)
     parser.add_argument('--lr_step_phase2', default=1500)
     parser.add_argument('--sequence_length_phase2', default=20)
+    parser.add_argument('--workers_phase2', default=1)
 
     ##phase 3
     parser.add_argument('--task_phase3', type=str, default='fine_tune')
-    parser.add_argument('--batch_size_phase3', type=int, default=4)
-    parser.add_argument('--validation_frequency_phase3', type=int, default=30000)
-    parser.add_argument('--nEpochs_phase3', type=int, default=1)
+    parser.add_argument('--batch_size_phase3', type=int, default=1)
+    parser.add_argument('--validation_frequency_phase3', type=int, default=100)
+    parser.add_argument('--nEpochs_phase3', type=int, default=3)
     parser.add_argument('--augment_prob_phase3', default=0)
     parser.add_argument('--weight_decay_phase3', default=1e-2)
     parser.add_argument('--lr_init_phase3', default=3e-5)
     parser.add_argument('--lr_gamma_phase3', default=0.9)
     parser.add_argument('--lr_step_phase3', default=1500)
     parser.add_argument('--sequence_length_phase3', default=20)
+    parser.add_argument('--workers_phase3', default=1)
     args = parser.parse_args()
     return args
 
@@ -71,21 +72,27 @@ def setup(cuda_num):
     os.makedirs(os.path.join(base_path,'runs'),exist_ok=True)
     return base_path
 
-def run_phase(args,model_weights_path,phase_num,phase_name):
+def run_phase(args,loaded_model_weights_path,phase_num,phase_name):
     """
     main process that runs each training phase
     :return path to model weights (pytorch file .pth) aquried by the current training phase
     """
-    experiment_folder = '{}_{}_{}'.format(args.dataset_name,phase_name,datestamp())
+    experiment_folder = 'S_perceptual_layers_1_2_factor_01_{}_{}_{}'.format(args.dataset_name,phase_name,datestamp())
     experiment_folder = Path(os.path.join(args.base_path,'experiments',experiment_folder))
     os.makedirs(experiment_folder)
-    args.weights_path = model_weights_path
+    setattr(args,'loaded_model_weights_path_phase' + phase_num,loaded_model_weights_path)
     args.experiment_folder = experiment_folder
     args.experiment_title = experiment_folder.name
+    fine_tune_task = args.fine_tune_task
+    args_logger(args)
     args = sort_args(phase_num, vars(args))
-    trainer = Trainer(sets=['train', 'val'],**args)
+    if phase_num == '3':
+        S = ['train','val','test']
+    else:
+        S = ['train','val']
+    trainer = Trainer(sets=S,**args)
     trainer.training()
-    if phase_num == '3' and not args.fine_tune_task == 'regression':
+    if phase_num == '3' and not fine_tune_task == 'regression':
         critical_metric = 'accuracy'
     else:
         critical_metric = 'loss'
@@ -101,14 +108,21 @@ def test(args,model_weights_path):
 
 def main(base_path):
     args = get_arguments(base_path)
-    # pretrain step1
-    model_weights_path_phase1 = run_phase(args,None,'1','autoencoder_reconstruction')
-    #pretrain step2
-    model_weights_path_phase2 = run_phase(args,model_weights_path_phase1, '2', 'tranformer_reconstruction')
-    #fine tune
+    ## pretrain step1
+    #print('starting phase 1...')
+    #model_weights_path_phase1 = run_phase(args,None,'1','autoencoder_reconstruction_perceptual_layer_1_2')
+    #print('finishing phase 1...')
+    ##pretrain step2
+    #print('starting phase 2...')
+    #model_weights_path_phase2 = run_phase(args,model_weights_path_phase1, '2', 'tranformer_reconstruction_perceptual_layer_1_2')
+    #print('finishing phase 2...')
+    ##fine tune
+    #print('starting phase 3...')
+    model_weights_path_phase2 = None
     model_weights_path_phase3 = run_phase(args, model_weights_path_phase2,'3','finetune_{}'.format(args.fine_tune_task))
+    print('finishing phase 3...')
     #test
-    test(args, model_weights_path_phase3)
+    #test(args, model_weights_path_phase3)
 
 
 

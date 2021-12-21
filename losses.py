@@ -21,16 +21,13 @@ class Vgg16(nn.Module):
         features = models.vgg16(pretrained=True).features
         self.to_relu_1_2 = nn.Sequential()
         self.to_relu_2_2 = nn.Sequential()
-        #self.to_relu_3_3 = nn.Sequential()
-        #self.to_relu_4_3 = nn.Sequential()
+        self.to_relu_3_3 = nn.Sequential()
         for x in range(4):
             self.to_relu_1_2.add_module(str(x), features[x])
         for x in range(4, 9):
             self.to_relu_2_2.add_module(str(x), features[x])
-        #for x in range(9, 16):
-        #    self.to_relu_3_3.add_module(str(x), features[x])
-        #for x in range(16, 23):
-        #    self.to_relu_4_3.add_module(str(x), features[x])
+        for x in range(9, 16):
+            self.to_relu_3_3.add_module(str(x), features[x])
 
         # don't need the gradients, just want the features
         for param in self.parameters():
@@ -38,32 +35,33 @@ class Vgg16(nn.Module):
 
     def forward(self, x):
         h = self.to_relu_1_2(x)
-        h_relu_1_2 = h
-
+        #h_relu_1_2 = h
         h = self.to_relu_2_2(h)
         h_relu_2_2 = h
-
-        out = (h_relu_1_2, h_relu_2_2)
+        h = self.to_relu_3_3(h)
+        h_relu_3_3 = h
+        out = (h_relu_2_2, h_relu_3_3)
         return out
 
 class Percept_Loss(nn.Module):
     def __init__(self,**kwargs):
         super(Percept_Loss, self).__init__()
-        is_active = kwargs.get('perceptual_active')
-        if not is_active:
-            pass
-        else:
+        task = kwargs.get('task')
+        if task == 'autoencoder_reconstruction':
+            self.memory_constraint = 0.25
+        elif task == 'transformer_reconstruction':
+            self.memory_constraint = 0.1
+        if 'reconstruction' in task:
             self.vgg = Vgg16()
             if kwargs.get('cuda'):
                 self.vgg.cuda()
-            self.memory_constraint = kwargs.get('perceptual_memory')
             self.loss = nn.MSELoss()
 
     def forward(self, input, target):
         assert input.shape == target.shape, 'input and target should have identical dimension'
         assert len(input.shape) == 6
         batch, channel, width, height, depth, T = input.shape
-        num_slices = batch * channel * T * depth
+        num_slices = batch * T * depth
         represent = torch.randperm(num_slices)[:int(num_slices * self.memory_constraint)]
         input = input.permute(0, 5, 1, 4, 2, 3).reshape(num_slices, 1, width, height)
         target = target.permute(0, 5, 1, 4, 2, 3).reshape(num_slices, 1, width, height)

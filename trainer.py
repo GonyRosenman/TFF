@@ -36,13 +36,13 @@ class Trainer():
         self.optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
 
     def initialize_weights(self):
-        if self.weights_path is not None:
-            state_dict = torch.load(self.weights_path)
+        if self.loaded_model_weights_path is not None:
+            state_dict = torch.load(self.loaded_model_weights_path)
             self.lr_handler.set_lr(state_dict['lr'])
             self.model.load_partial_state_dict(state_dict['model_state_dict'])
-            self.model.pretrain_weights_path = self.weights_path
+            self.model.loaded_model_weights_path = self.loaded_model_weights_path
             text = 'loaded model weights:\nmodel location - {}\nlast learning rate - {}\nvalidation loss - {}\n'.format(
-                self.weights_path, state_dict['lr'],state_dict['loss_value'])
+                self.loaded_model_weights_path, state_dict['lr'],state_dict['loss_value'])
             if 'accuracy' in state_dict:
                 text += 'validation accuracy - {}'.format(state_dict['accuracy'])
             print(text)
@@ -82,6 +82,7 @@ class Trainer():
         for epoch in range(self.nEpochs):
             self.train_epoch(epoch)
             self.eval_epoch('val')
+            print('______epoch summary {}/{}_____\n'.format(epoch,self.nEpochs))
             self.writer.loss_summary()
             self.writer.accuracy_summary(mid_epoch=False)
             self.writer.save_history_to_csv()
@@ -101,6 +102,7 @@ class Trainer():
             if (batch_idx + 1) % self.validation_frequency == 0:
                 partial_epoch = epoch + (batch_idx / len(self.train_loader))
                 self.eval_epoch('val')
+                print('______mid-epoch summary {0:.2f}/{1:.0f}______\n'.format(partial_epoch,self.nEpochs))
                 self.writer.loss_summary()
                 self.writer.accuracy_summary(mid_epoch=True)
                 self.writer.save_history_to_csv()
@@ -123,14 +125,15 @@ class Trainer():
 
     def get_last_accuracy(self):
         if hasattr(self.writer,'val_AUROC'):
-            return self.val_AUROC[-1]
+            return self.writer.val_AUROC[-1]
         else:
             return None
 
     def save_checkpoint_(self,epoch):
         loss = self.get_last_loss()
         accuracy = self.get_last_accuracy()
-        self.model.save_checkpoint(self.writer.experiment_folder, self.writer.experiment_title, epoch, loss ,accuracy, self.optimizer ,schedule=self.schedule)
+        self.model.save_checkpoint(
+            self.writer.experiment_folder, self.writer.experiment_title, epoch, loss ,accuracy, self.optimizer ,schedule=self.lr_handler.schedule)
 
 
     def forward_pass(self,input_dict):

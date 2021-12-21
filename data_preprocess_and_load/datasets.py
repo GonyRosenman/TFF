@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset
 import augmentations
 import pandas as pd
+from pathlib import Path
 
 
 class BaseDataset(Dataset):
@@ -102,7 +103,8 @@ class ucla(BaseDataset):
     def __init__(self, **kwargs):
         super(ucla, self).__init__()
         self.register_args(**kwargs)
-        self.root = os.path.join(args.base_path,'ucla','ucla','ucla','output')
+        datasets_folder = str(Path(kwargs.get('base_path')).parent.parent)
+        self.root = os.path.join(datasets_folder,'fmri_data','ucla','ucla','output')
         self.meta_data = pd.read_csv(os.path.join(self.root,'participants.tsv'),sep='\t')
         self.data_dir = os.path.join(self.root, 'rest')
         self.subjects = len(os.listdir(self.data_dir))

@@ -15,13 +15,14 @@ class Metrics():
         return accuracy
 
     def AUROC(self,truth,pred):
-        roc_auc_score(truth, pred)
+        score = roc_auc_score(truth, pred)
         fpr, tpr, thresholds = roc_curve(truth, pred)
         # calculate the g-mean for each threshold
         gmeans = np.sqrt(tpr * (1 - fpr))
         # locate the index of the largest g-mean
         ix = np.argmax(gmeans)
         print('Best Threshold={}, G-Mean={}'.format(thresholds[ix], gmeans[ix]))
+        return score
 
     def MAE(self,truth,pred):
         mae = np.mean([abs(ii - jj) for ii, jj in zip(pred, truth)])

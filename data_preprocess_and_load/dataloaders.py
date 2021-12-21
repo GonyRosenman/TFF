@@ -2,11 +2,18 @@ import numpy as np
 from torch.utils.data import DataLoader,Subset
 from data_preprocess_and_load.datasets import *
 from utils import reproducibility
+import multiprocessing
 
 def get_params(**kwargs):
     batch_size = kwargs.get('batch_size')
     workers = kwargs.get('workers')
     cuda = kwargs.get('cuda')
+    if workers > 0:
+        try:
+            multiprocessing.set_start_method('spawn')
+        except RuntimeError:
+            pass
+
     params = {'batch_size': batch_size,
               'shuffle': True,
               'num_workers': workers,
@@ -49,7 +56,7 @@ def create_dataloaders(sets,**kwargs):
     params = get_params(**kwargs)
     dataset_name = kwargs.get('dataset_name')
     datasets_dict = {'S1200':{'final_split_path':r'D:\users\Gony\HCP-1200\final_split_train_test.txt','loader':rest_1200_3D},
-                     'ucla':{'final_split_path':r'D:\users\Gony\ucla\ucla\ucla\output\final_split_train_test.txt','loader':ucla}}
+                     'ucla':{'final_split_path':os.path.join(str(Path(kwargs.get('base_path')).parent.parent),'fmri_data','ucla','final_split_train_test.txt'),'loader':ucla}}
 
     train_loader = datasets_dict[dataset_name]['loader'](**kwargs)
     eval_loader = datasets_dict[dataset_name]['loader'](**kwargs)
@@ -59,6 +66,9 @@ def create_dataloaders(sets,**kwargs):
     else:
         subject_order = open(datasets_dict[dataset_name]['final_split_path'], 'r').readlines()
         train_idx, val_idx, test_idx = predetermined_split(subject_order,train_loader.index_l)
+
+    #train_idx = [train_idx[x] for x in torch.randperm(len(train_idx))[:10]]
+    #val_idx = [val_idx[x] for x in torch.randperm(len(val_idx))[:10]]
 
     train_loader = Subset(train_loader,train_idx)
     val_loader = Subset(eval_loader,val_idx)

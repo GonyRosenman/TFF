@@ -21,7 +21,7 @@ class Writer():
         self.total_train_steps = 0
         self.eval_iter = 0
         self.subject_accuracy = {}
-        self.tensorboard = SummaryWriter(log_dir=self.tensorboard_dir, comment=self.experiment_title) if not any(['test' == set_ for set_ in sets]) else None
+        self.tensorboard = SummaryWriter(log_dir=self.tensorboard_dir, comment=self.experiment_title)
         for set in sets:
             setattr(self,'total_{}_loss_values'.format(set),[])
             setattr(self,'total_{}_loss_history'.format(set),[])
@@ -40,8 +40,9 @@ class Writer():
             os.makedirs(self.per_subject_predictions)
 
     def save_history_to_csv(self):
-        for name in self.losses.keys():
-            if self.losses[name]['is_active']:
+        loss_d = self.append_total_to_losses()
+        for name in loss_d.keys():
+            if loss_d[name]['is_active']:
                 rows = [getattr(self,x) for x in dir(self) if 'history' in x and name in x]
                 column_names = tuple([x for x in dir(self) if 'history' in x and name in x])
                 export_data = zip_longest(*rows, fillvalue='')
@@ -49,10 +50,11 @@ class Writer():
                     wr = csv.writer(myfile)
                     wr.writerow(column_names)
                     wr.writerows(export_data)
+        #and for total loss
+
 
     def loss_summary(self):
-        loss_d = self.losses.copy()
-        loss_d.update({'total':{'is_active':True}})
+        loss_d = self.append_total_to_losses()
         for name, loss_dict in loss_d.items():
             if loss_dict['is_active']:
                 for set in self.sets:
@@ -64,6 +66,7 @@ class Writer():
                     score = np.mean(values)
                     history = getattr(self,title + '_loss_history')
                     history.append(score)
+                    print('{}: {}'.format(title,score))
                     setattr(self,title + '_loss_history',history)
                     if self.tensorboard is not None:
                         self.tensorboard.add_scalar(title, score, iter)
@@ -81,11 +84,10 @@ class Writer():
                 f.write('subject:{} ({})\noutputs: {:.4f}\u00B1{:.4f}  -  truth: {}\n'.format(subj_name,subj_mode,subj_pred,subj_error,subj_truth))
             pred_all_sets[subj_mode].append(subj_pred)
             truth_all_sets[subj_mode].append(subj_truth)
-        self.eval_iter += 1
         for (name,pred),(_,truth) in zip(pred_all_sets.items(),truth_all_sets.items()):
             if len(pred) == 0:
                 continue
-            if self.task == 'regression':
+            if self.fine_tune_task == 'regression':
                 metrics[name + '_MAE'] = self.metrics.MAE(truth,pred)
                 metrics[name + '_MSE'] = self.metrics.MSE(truth,pred)
                 metrics[name +'_NMSE'] = self.metrics.NMSE(truth,pred)
@@ -103,6 +105,8 @@ class Writer():
                 setattr(self,name,l)
             else:
                 setattr(self, name, [value])
+            print('{}: {}'.format(name,value))
+        self.eval_iter += 1
         if mid_epoch and len(self.subject_accuracy) > 0:
             self.subject_accuracy = {k: v for k, v in self.subject_accuracy.items() if v['mode'] == 'train'}
         else:
@@ -125,15 +129,15 @@ class Writer():
 
     def register_losses(self,**kwargs):
         self.losses = {'intensity':
-                           {'criterion':L1Loss(),'thresholds':[0.9, 0.99],'factor':1},
+                           {'is_active':False,'criterion':L1Loss(),'thresholds':[0.9, 0.99],'factor':1},
                        'perceptual':
-                           {'criterion': Percept_Loss(**kwargs),'memory_percent':0.25,'factor':1},
+                           {'is_active':False,'criterion': Percept_Loss(**kwargs),'factor':0.1},
                        'reconstruction':
-                           {'criterion':L1Loss(),'factor':1},
+                           {'is_active':False,'criterion':L1Loss(),'factor':1},
                        'binary_classification':
-                           {'criterion':BCELoss(),'factor':1},
+                           {'is_active':False,'criterion':BCELoss(),'factor':1},
                        'regression':
-                           {'criterion':L1Loss(),'factor':1}}
+                           {'is_active':False,'criterion':L1Loss(),'factor':1}}
         if 'reconstruction' in kwargs.get('task').lower():
             self.losses['intensity']['is_active'] = True
             self.losses['perceptual']['is_active'] = True
@@ -143,3 +147,8 @@ class Writer():
                 self.losses['regression']['is_active'] = True
             else:
                 self.losses['binary_classification']['is_active'] = True
+
+    def append_total_to_losses(self):
+        loss_d = self.losses.copy()
+        loss_d.update({'total': {'is_active': True}})
+        return loss_d

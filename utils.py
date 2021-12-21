@@ -5,6 +5,7 @@ import torch.backends.cudnn as cudnn
 from datetime import datetime
 import argparse
 import os
+import dill
 
 def datestamp():
     time = datetime.now().strftime("%d_%m___%H_%M_%S")
@@ -28,3 +29,17 @@ def sort_args(phase, args):
         elif 'phase' + phase in name:
             phase_specific_args[name.replace('_phase' + phase, '')] = value
     return phase_specific_args
+
+def args_logger(args):
+    args_to_pkl(args)
+    args_to_text(args)
+
+
+def args_to_pkl(args):
+    with open(os.path.join(args.experiment_folder,'arguments_as_is.pkl'),'wb') as f:
+        dill.dump(vars(args),f)
+
+def args_to_text(args):
+    with open(os.path.join(args.experiment_folder,'argument_documentation.txt'),'w+') as f:
+        for name,arg in vars(args).items():
+            f.write('{}: {}\n'.format(name,arg))

@@ -56,6 +56,8 @@ class BaseModel(nn.Module, ABC):
         self.shapes = kwargs.get('shapes')
 
 
+
+
     def load_partial_state_dict(self, state_dict):
         print('loading parameters onto new model...')
         own_state = self.state_dict()
@@ -82,8 +84,8 @@ class BaseModel(nn.Module, ABC):
         if schedule is not None:
             ckpt_dict['schedule_state_dict'] = schedule.state_dict()
             ckpt_dict['lr'] = schedule.get_last_lr()[0]
-        if hasattr(self,'pretrain_weights_path'):
-            ckpt_dict['pretrain_weights_path'] = self.pretrain_weights_path
+        if hasattr(self,'loaded_model_weights_path'):
+            ckpt_dict['loaded_model_weights_path'] = self.loaded_model_weights_path
 
         # Save the file with specific name
         core_name = title
@@ -315,6 +317,10 @@ class Encoder_Transformer_finetune(BaseModel):
         # transformer
         self.transformer = Transformer_Block(self.BertConfig,**kwargs)
         # finetune classifier
+        if kwargs.get('fine_tune_task') == 'regression':
+            self.final_activation_func = nn.LeakyReLU()
+        elif kwargs.get('fine_tune_task') == 'binary_classification':
+            self.final_activation_func = nn.Sigmoid()
         self.regression_head = nn.Sequential(nn.Linear(self.BertConfig.hidden_size, self.label_num),self.final_activation_func)
 
 
