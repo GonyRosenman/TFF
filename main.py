@@ -108,17 +108,16 @@ def test(args,model_weights_path):
 
 def main(base_path):
     args = get_arguments(base_path)
-    ## pretrain step1
-    #print('starting phase 1...')
-    #model_weights_path_phase1 = run_phase(args,None,'1','autoencoder_reconstruction_perceptual_layer_1_2')
-    #print('finishing phase 1...')
-    ##pretrain step2
-    #print('starting phase 2...')
-    #model_weights_path_phase2 = run_phase(args,model_weights_path_phase1, '2', 'tranformer_reconstruction_perceptual_layer_1_2')
-    #print('finishing phase 2...')
-    ##fine tune
-    #print('starting phase 3...')
-    model_weights_path_phase2 = None
+    # pretrain step1
+    print('starting phase 1...')
+    model_weights_path_phase1 = run_phase(args,None,'1','autoencoder_reconstruction')
+    print('finishing phase 1...')
+    #pretrain step2
+    print('starting phase 2...')
+    model_weights_path_phase2 = run_phase(args,model_weights_path_phase1, '2', 'tranformer_reconstruction')
+    print('finishing phase 2...')
+    #fine tune
+    print('starting phase 3...')
     model_weights_path_phase3 = run_phase(args, model_weights_path_phase2,'3','finetune_{}'.format(args.fine_tune_task))
     print('finishing phase 3...')
     #test
