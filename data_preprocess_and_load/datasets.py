@@ -77,7 +77,7 @@ class rest_1200_3D(BaseDataset):
                 age = self.meta_data[self.meta_data['Subject'] == int(subject)]['Age'].values[0]
                 age = torch.tensor([float(x) for x in age.replace('+','-').split('-')]).mean()
             gender = self.meta_data[self.meta_data['Subject']==int(subject)]['Gender'].values[0]
-            path_to_TRs = os.path.join(self.data_dir,subject,self.norm_name)
+            path_to_TRs = os.path.join(self.data_dir,subject,self.norm)
             subject_duration = len(os.listdir(path_to_TRs))#121
             session_duration = subject_duration - self.sample_duration
             filename = os.listdir(path_to_TRs)[0]
