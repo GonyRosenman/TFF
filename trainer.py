@@ -60,7 +60,7 @@ class Trainer():
 
     def eval_epoch(self,set):
         loader = self.val_loader if set == 'val' else self.test_loader
-        self.eval()
+        self.eval(set)
         with torch.no_grad():
             for input_dict in tqdm(loader, position=0, leave=True):
                 loss_dict, _ = self.forward_pass(input_dict)
@@ -109,8 +109,8 @@ class Trainer():
                 self.save_checkpoint_(partial_epoch)
 
 
-    def eval(self,test=False):
-        self.mode = 'test' if test else 'val'
+    def eval(self,set):
+        self.mode = set
         self.model = self.model.eval()
 
     def train(self):

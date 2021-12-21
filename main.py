@@ -51,14 +51,14 @@ def get_arguments(base_path):
 
     ##phase 3
     parser.add_argument('--task_phase3', type=str, default='fine_tune')
-    parser.add_argument('--batch_size_phase3', type=int, default=1)
-    parser.add_argument('--validation_frequency_phase3', type=int, default=100)
+    parser.add_argument('--batch_size_phase3', type=int, default=3)
+    parser.add_argument('--validation_frequency_phase3', type=int, default=333)
     parser.add_argument('--nEpochs_phase3', type=int, default=3)
     parser.add_argument('--augment_prob_phase3', default=0)
     parser.add_argument('--weight_decay_phase3', default=1e-2)
-    parser.add_argument('--lr_init_phase3', default=3e-5)
+    parser.add_argument('--lr_init_phase3', default=1e-4)
     parser.add_argument('--lr_gamma_phase3', default=0.9)
-    parser.add_argument('--lr_step_phase3', default=1500)
+    parser.add_argument('--lr_step_phase3', default=1000)
     parser.add_argument('--sequence_length_phase3', default=20)
     parser.add_argument('--workers_phase3', default=1)
     args = parser.parse_args()
@@ -86,10 +86,7 @@ def run_phase(args,loaded_model_weights_path,phase_num,phase_name):
     fine_tune_task = args.fine_tune_task
     args_logger(args)
     args = sort_args(phase_num, vars(args))
-    if phase_num == '3':
-        S = ['train','val','test']
-    else:
-        S = ['train','val']
+    S = ['train','val']
     trainer = Trainer(sets=S,**args)
     trainer.training()
     if phase_num == '3' and not fine_tune_task == 'regression':
@@ -118,6 +115,7 @@ def main(base_path):
     print('finishing phase 2...')
     #fine tune
     print('starting phase 3...')
+    model_weights_path_phase2 = None
     model_weights_path_phase3 = run_phase(args, model_weights_path_phase2,'3','finetune_{}'.format(args.fine_tune_task))
     print('finishing phase 3...')
     #test

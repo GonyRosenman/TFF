@@ -4,10 +4,12 @@ from data_preprocess_and_load.datasets import *
 from utils import reproducibility
 import multiprocessing
 
-def get_params(**kwargs):
+def get_params(eval=False,**kwargs):
     batch_size = kwargs.get('batch_size')
     workers = kwargs.get('workers')
     cuda = kwargs.get('cuda')
+    if eval:
+        workers = 0
     if workers > 0:
         try:
             multiprocessing.set_start_method('spawn')
@@ -53,7 +55,8 @@ def predetermined_split(subject_order,index_l):
 def create_dataloaders(sets,**kwargs):
     test = any([set == 'test' for set in sets])
     reproducibility(**kwargs)
-    params = get_params(**kwargs)
+    train_params = get_params(**kwargs)
+    eval_params = get_params(**kwargs,eval=True)
     dataset_name = kwargs.get('dataset_name')
     datasets_dict = {'S1200':{'final_split_path':r'D:\users\Gony\HCP-1200\final_split_train_test.txt','loader':rest_1200_3D},
                      'ucla':{'final_split_path':os.path.join(str(Path(kwargs.get('base_path')).parent.parent),'fmri_data','ucla','final_split_train_test.txt'),'loader':ucla}}
@@ -74,7 +77,7 @@ def create_dataloaders(sets,**kwargs):
     val_loader = Subset(eval_loader,val_idx)
     test_loader = Subset(eval_loader, test_idx) if test else None
 
-    training_generator = DataLoader(train_loader, **params)
-    val_generator = DataLoader(val_loader, **params)
-    test_generator = DataLoader(test_loader, **params) if test else None
+    training_generator = DataLoader(train_loader, **train_params)
+    val_generator = DataLoader(val_loader, **eval_params)
+    test_generator = DataLoader(test_loader, **eval_params) if test else None
     return training_generator, val_generator , test_generator
