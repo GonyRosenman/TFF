@@ -69,7 +69,7 @@ class Trainer():
 
     def testing(self):
         self.eval_epoch('test')
-        self.writer.loss_summary()
+        self.writer.loss_summary(lr=0)
         self.writer.accuracy_summary(mid_epoch=False)
         for metric_name in dir(self.writer):
             if 'history' not in metric_name:
@@ -83,7 +83,7 @@ class Trainer():
             self.train_epoch(epoch)
             self.eval_epoch('val')
             print('______epoch summary {}/{}_____\n'.format(epoch,self.nEpochs))
-            self.writer.loss_summary()
+            self.writer.loss_summary(lr=self.lr_handler.schedule.get_last_lr()[0])
             self.writer.accuracy_summary(mid_epoch=False)
             self.writer.save_history_to_csv()
             self.save_checkpoint_(epoch)
@@ -103,7 +103,7 @@ class Trainer():
                 partial_epoch = epoch + (batch_idx / len(self.train_loader))
                 self.eval_epoch('val')
                 print('______mid-epoch summary {0:.2f}/{1:.0f}______\n'.format(partial_epoch,self.nEpochs))
-                self.writer.loss_summary()
+                self.writer.loss_summary(lr=self.lr_handler.schedule.get_last_lr()[0])
                 self.writer.accuracy_summary(mid_epoch=True)
                 self.writer.save_history_to_csv()
                 self.save_checkpoint_(partial_epoch)

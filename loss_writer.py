@@ -53,7 +53,8 @@ class Writer():
         #and for total loss
 
 
-    def loss_summary(self):
+    def loss_summary(self,lr):
+        self.scalar_to_tensorboard('learning_rate',lr,self.total_train_steps)
         loss_d = self.append_total_to_losses()
         for name, loss_dict in loss_d.items():
             if loss_dict['is_active']:
@@ -68,8 +69,7 @@ class Writer():
                     history.append(score)
                     print('{}: {}'.format(title,score))
                     setattr(self,title + '_loss_history',history)
-                    if self.tensorboard is not None:
-                        self.tensorboard.add_scalar(title, score, iter)
+                    self.scalar_to_tensorboard(title,score,iter)
 
     def accuracy_summary(self,mid_epoch):
         pred_all_sets = {x:[] for x in self.sets}
@@ -97,8 +97,7 @@ class Writer():
                 metrics[name + '_AUROC'] = self.metrics.AUROC(truth,pred)
 
         for name,value in metrics.items():
-            if self.tensorboard is not None:
-                self.tensorboard.add_scalar(name,value,self.eval_iter)
+            self.scalar_to_tensorboard(name,value,self.eval_iter)
             if hasattr(self,name):
                 l = getattr(self,name)
                 l.append(value)
@@ -152,3 +151,7 @@ class Writer():
         loss_d = self.losses.copy()
         loss_d.update({'total': {'is_active': True}})
         return loss_d
+
+    def scalar_to_tensorboard(self,tag,scalar,iter):
+        if self.tensorboard is not None:
+            self.tensorboard.add_scalar(tag,scalar,iter)
