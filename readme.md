@@ -3,7 +3,7 @@ This repo is the implementation for [**TFF**](https://arxiv.org/abs/2112.05761v1
 
 
 <p align="center">
-    <img src="data/architecture_image.PNG" width="600"/>
+    <img src="data/images/architecture_image.PNG" width="600"/>
 </p>
 
 
