@@ -107,6 +107,7 @@ class Trainer():
                 self.writer.accuracy_summary(mid_epoch=True)
                 self.writer.save_history_to_csv()
                 self.save_checkpoint_(partial_epoch)
+                self.train()
 
 
     def eval(self,set):
