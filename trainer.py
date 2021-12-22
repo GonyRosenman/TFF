@@ -82,7 +82,7 @@ class Trainer():
         for epoch in range(self.nEpochs):
             self.train_epoch(epoch)
             self.eval_epoch('val')
-            print('______epoch summary {}/{}_____\n'.format(epoch,self.nEpochs))
+            print('______epoch summary {}/{}_____\n'.format(epoch+1,self.nEpochs))
             self.writer.loss_summary(lr=self.lr_handler.schedule.get_last_lr()[0])
             self.writer.accuracy_summary(mid_epoch=False)
             self.writer.save_history_to_csv()
