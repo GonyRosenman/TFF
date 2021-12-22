@@ -23,18 +23,15 @@ We currently support the following datasets
   * Preprocess the data by configuring the folders and run 'data_preprocess_and_load/preprocessing.main()'
     
 * ucla (Consortium for Neuropsychiatric Phenomics LA5c Study) 
-  * original version available at (https://openneuro.org/datasets/ds000030/versions/00016)
-  *  Crafted by a human sommelier, 92 articles with ~10 ground-truth recommendations.
-  *  Examples:
-     *  Pinot Meunier - Chardonnay
-     *  Dom Pérignon - Moët & Chandon
+  * Original version available at (https://openneuro.org/datasets/ds000030/versions/00016)
+  * Data after proprocessing will be added soon, for now can download original and preprocess indiependently.
 
 
 
 # Training
-* for gender prediction run 'python main.py --dataset_name S1200 --fine_tune_task binary_classification'
-* for age prediction run 'python main.py --dataset_name S1200 --fine_tune_task regression'
-* for schezophrenia prediction run 'python main.py --dataset_name ucla --fine_tune_task binary_classification'
+* For gender prediction run 'python main.py --dataset_name S1200 --fine_tune_task binary_classification'
+* For age prediction run 'python main.py --dataset_name S1200 --fine_tune_task regression'
+* For schezophrenia prediction run 'python main.py --dataset_name ucla --fine_tune_task binary_classification'
 
 ## Tensorboard support
 All metrics are being logged automatically and stored in
@@ -44,7 +41,7 @@ TFF/runs
 Run `tesnroboard --logdir=<path>` to see the the logs.
 
 # HyperParameters
-in the future will be added the exact hyperparameters to reproduce results from the paper.
+In the future will be added the exact hyperparameters to reproduce results from the paper.
 
 
 
