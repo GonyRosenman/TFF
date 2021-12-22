@@ -6,8 +6,6 @@ This repo is the implementation for [**TFF**](https://arxiv.org/abs/2112.05761v1
     <img src="data/images/architecture_image.PNG" width="600"/>
 </p>
 
-
-&nbsp;
 ## Contents
 - [Datasets](#datasets)
 - [Train with our datasets](#training)
@@ -40,12 +38,12 @@ TFF/runs
 ```
 Run `tesnroboard --logdir=<path>` to see the the logs.
 
-# HyperParameters
+## HyperParameters
 In the future will be added the exact hyperparameters to reproduce results from the paper.
 
 
 
-# Citing & Authors
+## Citing & Authors
 If you find this repository helpful, feel free to cite our publication -
 
  TFF: Pre-training and Fine-tuning Transformers for fMRI Prediction Tasks
