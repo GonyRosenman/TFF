@@ -1,4 +1,4 @@
-#Pre-training and Fine-tuning Transformers for fMRI Prediction Tasks
+# Pre-training and Fine-tuning Transformers for fMRI Prediction Tasks
 This repo is the implementation for [**TFF**](https://arxiv.org/abs/2112.05761v1). 
 
 
