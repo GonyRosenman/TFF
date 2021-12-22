@@ -28,7 +28,7 @@ We currently support the following datasets
 
 
 
-# Training
+## Training
 * For gender prediction run 'python main.py --dataset_name S1200 --fine_tune_task binary_classification'
 * For age prediction run 'python main.py --dataset_name S1200 --fine_tune_task regression'
 * For schezophrenia prediction run 'python main.py --dataset_name ucla --fine_tune_task binary_classification'
