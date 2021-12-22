@@ -58,8 +58,10 @@ def create_dataloaders(sets,**kwargs):
     train_params = get_params(**kwargs)
     eval_params = get_params(**kwargs,eval=True)
     dataset_name = kwargs.get('dataset_name')
-    datasets_dict = {'S1200':{'final_split_path':r'D:\users\Gony\HCP-1200\final_split_train_test.txt','loader':rest_1200_3D},
-                     'ucla':{'final_split_path':os.path.join(str(Path(kwargs.get('base_path')).parent.parent),'fmri_data','ucla','final_split_train_test.txt'),'loader':ucla}}
+    datasets_dict = {'S1200':{'final_split_path':os.path.join(kwargs.get('base_path'),'data','splits','S1200_final_split_train_test.txt'),
+                              'loader':rest_1200_3D},
+                     'ucla':{'final_split_path':os.path.join(kwargs.get('base_path'),'data','splits','ucla_final_split_train_test.txt'),
+                             'loader':ucla}}
 
     train_loader = datasets_dict[dataset_name]['loader'](**kwargs)
     eval_loader = datasets_dict[dataset_name]['loader'](**kwargs)

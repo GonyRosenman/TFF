@@ -62,8 +62,8 @@ class rest_1200_3D(BaseDataset):
     def __init__(self, **kwargs):
         self.register_args(**kwargs)
         self.root = r'D:\users\Gony\HCP-1200'
-        self.meta_data = pd.read_csv(os.path.join(self.root, 'subject_data.csv'))
-        self.meta_data_residual = pd.read_csv(os.path.join(self.root,'HCP_1200_precise_age.csv'))
+        self.meta_data = pd.read_csv(os.path.join(kwargs.get('base_path'),'data','metadata','HCP_1200_gender.csv'))
+        self.meta_data_residual = pd.read_csv(os.path.join(kwargs.get('base_path'),'data','metadata','HCP_1200_precise_age.csv'))
         self.data_dir = os.path.join(self.root, 'MNI_to_TRs')
         self.subject_names = os.listdir(self.data_dir)
         self.label_dict = {'F': torch.tensor([0.0]), 'M': torch.tensor([1.0]), '22-25': torch.tensor([1.0, 0.0]),
@@ -74,6 +74,7 @@ class rest_1200_3D(BaseDataset):
             try:
                 age = torch.tensor(self.meta_data_residual[self.meta_data_residual['subject']==int(subject)]['age'].values[0])
             except Exception:
+                #deal with discrepency that a few subjects don't have exact age, so we take the mean of the age range as the exact age proxy
                 age = self.meta_data[self.meta_data['Subject'] == int(subject)]['Age'].values[0]
                 age = torch.tensor([float(x) for x in age.replace('+','-').split('-')]).mean()
             gender = self.meta_data[self.meta_data['Subject']==int(subject)]['Gender'].values[0]
@@ -105,7 +106,7 @@ class ucla(BaseDataset):
         self.register_args(**kwargs)
         datasets_folder = str(Path(kwargs.get('base_path')).parent.parent)
         self.root = os.path.join(datasets_folder,'fmri_data','ucla','ucla','output')
-        self.meta_data = pd.read_csv(os.path.join(self.root,'participants.tsv'),sep='\t')
+        self.meta_data = pd.read_csv(os.path.join(kwargs.get('base_path'),'data','metadata','ucla_participants.tsv'),sep='\t')
         self.data_dir = os.path.join(self.root, 'rest')
         self.subjects = len(os.listdir(self.data_dir))
         self.subjects_names = os.listdir(self.data_dir)
