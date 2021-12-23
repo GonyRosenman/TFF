@@ -128,11 +128,11 @@ class Writer():
 
     def register_losses(self,**kwargs):
         self.losses = {'intensity':
-                           {'is_active':False,'criterion':L1Loss(),'thresholds':[0.9, 0.99],'factor':1},
+                           {'is_active':False,'criterion':L1Loss(),'thresholds':[0.9, 0.99],'factor':kwargs.get('intensity_factor')},
                        'perceptual':
-                           {'is_active':False,'criterion': Percept_Loss(**kwargs),'factor':0.1},
+                           {'is_active':False,'criterion': Percept_Loss(**kwargs),'factor':kwargs.get('perceptual_factor')},
                        'reconstruction':
-                           {'is_active':False,'criterion':L1Loss(),'factor':1},
+                           {'is_active':False,'criterion':L1Loss(),'factor':kwargs.get('reconstruction_factor')},
                        'binary_classification':
                            {'is_active':False,'criterion':BCELoss(),'factor':1},
                        'regression':

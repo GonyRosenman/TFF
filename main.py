@@ -16,11 +16,14 @@ def get_arguments(base_path):
     parser.add_argument('--cuda', default=True)
     parser.add_argument('--log_dir', type=str, default=os.path.join(base_path, 'runs'))
     parser.add_argument('--random_TR', default=True)
+    parser.add_argument('--intensity_factor', default=1)
+    parser.add_argument('--perceptual_factor', default=1)
+    parser.add_argument('--reconstruction_factor', default=1)
     parser.add_argument('--fine_tune_task',
                         default='binary_classification',
                         choices=['regression','binary_classification'],
                         help='fine tune model objective. choose binary_classification in case of a binary classification task')
-    parser.add_argument('--pretrain_split', default=0.9)
+    parser.add_argument('--pretrain_split', default=0.95)
     parser.add_argument('--running_mean_size', default=5000)
 
 
@@ -28,7 +31,7 @@ def get_arguments(base_path):
     parser.add_argument('--task_phase1', type=str, default='autoencoder_reconstruction')
     parser.add_argument('--batch_size_phase1', type=int, default=4)
     parser.add_argument('--validation_frequency_phase1', type=int, default=1000)
-    parser.add_argument('--nEpochs_phase1', type=int, default=1)
+    parser.add_argument('--nEpochs_phase1', type=int, default=10)
     parser.add_argument('--augment_prob_phase1', default=0)
     parser.add_argument('--weight_decay_phase1', default=1e-7)
     parser.add_argument('--lr_init_phase1', default=1e-3)
@@ -41,11 +44,11 @@ def get_arguments(base_path):
     parser.add_argument('--task_phase2', type=str, default='transformer_reconstruction')
     parser.add_argument('--batch_size_phase2', type=int, default=1)
     parser.add_argument('--validation_frequency_phase2', type=int, default=500)
-    parser.add_argument('--nEpochs_phase2', type=int, default=3)
+    parser.add_argument('--nEpochs_phase2', type=int, default=5)
     parser.add_argument('--augment_prob_phase2', default=0)
     parser.add_argument('--weight_decay_phase2', default=1e-7)
     parser.add_argument('--lr_gamma_phase2', default=0.97)
-    parser.add_argument('--lr_step_phase2', default=1500)
+    parser.add_argument('--lr_step_phase2', default=1000)
     parser.add_argument('--sequence_length_phase2', default=20)
     parser.add_argument('--workers_phase2', default=1)
 
@@ -53,7 +56,7 @@ def get_arguments(base_path):
     parser.add_argument('--task_phase3', type=str, default='fine_tune')
     parser.add_argument('--batch_size_phase3', type=int, default=3)
     parser.add_argument('--validation_frequency_phase3', type=int, default=333)
-    parser.add_argument('--nEpochs_phase3', type=int, default=3)
+    parser.add_argument('--nEpochs_phase3', type=int, default=10)
     parser.add_argument('--augment_prob_phase3', default=0)
     parser.add_argument('--weight_decay_phase3', default=1e-2)
     parser.add_argument('--lr_init_phase3', default=1e-4)
@@ -77,7 +80,7 @@ def run_phase(args,loaded_model_weights_path,phase_num,phase_name):
     main process that runs each training phase
     :return path to model weights (pytorch file .pth) aquried by the current training phase
     """
-    experiment_folder = 'S_perceptual_layers_1_2_factor_01_{}_{}_{}'.format(args.dataset_name,phase_name,datestamp())
+    experiment_folder = '{}_{}_{}'.format(args.dataset_name,phase_name,datestamp())
     experiment_folder = Path(os.path.join(args.base_path,'experiments',experiment_folder))
     os.makedirs(experiment_folder)
     setattr(args,'loaded_model_weights_path_phase' + phase_num,loaded_model_weights_path)
@@ -115,7 +118,6 @@ def main(base_path):
     print('finishing phase 2...')
     #fine tune
     print('starting phase 3...')
-    model_weights_path_phase2 = None
     model_weights_path_phase3 = run_phase(args, model_weights_path_phase2,'3','finetune_{}'.format(args.fine_tune_task))
     print('finishing phase 3...')
     #test
@@ -125,6 +127,6 @@ def main(base_path):
 
 
 if __name__ == '__main__':
-    base_path = setup(cuda_num=1)
+    base_path = setup(cuda_num=0)
     main(base_path)
 
