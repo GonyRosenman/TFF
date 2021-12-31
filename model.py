@@ -41,17 +41,21 @@ class BaseModel(nn.Module, ABC):
 
     def register_vars(self,**kwargs):
         intermediate_vec = 2640
+        if kwargs.get('task') == 'fine_tune':
+            self.dropout_rates = {'input': 0, 'green': 0.4,'Up_green': 0,'transformer':0.1}
+        else:
+            self.dropout_rates = {'input': 0, 'green': 0.2, 'Up_green': 0.2,'transformer':0.1}
+
         self.BertConfig = BertConfig(hidden_size=intermediate_vec, vocab_size=1,
-                                     num_hidden_layers=2,
+                                     num_hidden_layers=kwargs.get('transformer_hidden_layers'),
                                      num_attention_heads=16, max_position_embeddings=30,
-                                     hidden_dropout_prob=0.1)
+                                     hidden_dropout_prob=self.dropout_rates['transformer'])
 
         self.label_num = 1
         self.inChannels = 2
         self.outChannels = 1
         self.model_depth = 4
         self.intermediate_vec = intermediate_vec
-        self.dropout_rates = {'input': 0.2, 'green': 0.4,'Up_green': 0.2}
         self.use_cuda = kwargs.get('cuda')
         self.shapes = kwargs.get('shapes')
 
@@ -233,12 +237,9 @@ class Transformer_Block(BertPreTrainedModel, BaseModel):
         self.cls_pooling = True
         self.bert = BertModel(self.BertConfig, add_pooling_layer=self.cls_pooling)
         self.init_weights()
-        self.cls_id = (torch.ones((kwargs.get('batch_size'), 1, self.BertConfig.hidden_size)) * 0.5)
         self.cls_embedding = nn.Sequential(nn.Linear(self.BertConfig.hidden_size, self.BertConfig.hidden_size), nn.LeakyReLU())
+        self.register_buffer('cls_id', torch.ones((kwargs.get('batch_size'), 1, self.BertConfig.hidden_size)) * 0.5,persistent=False)
 
-        if self.use_cuda:
-            self.cls_id = self.cls_id.cuda() if self.cls_pooling else None
-            self.cls_embedding = self.cls_embedding.cuda() if self.cls_pooling else None
 
     def concatenate_cls(self, x):
         cls_token = self.cls_embedding(self.cls_id)

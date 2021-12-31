@@ -2,7 +2,6 @@ import numpy as np
 from torch.utils.data import DataLoader,Subset
 from data_preprocess_and_load.datasets import *
 from utils import reproducibility
-import multiprocessing
 
 def get_params(eval=False,**kwargs):
     batch_size = kwargs.get('batch_size')
@@ -10,18 +9,13 @@ def get_params(eval=False,**kwargs):
     cuda = kwargs.get('cuda')
     if eval:
         workers = 0
-    if workers > 0:
-        try:
-            multiprocessing.set_start_method('spawn')
-        except RuntimeError:
-            pass
 
     params = {'batch_size': batch_size,
               'shuffle': True,
               'num_workers': workers,
               'drop_last': True,
               'pin_memory': False,#True if cuda else False,
-              'persistent_workers': True if workers > 0 and cuda else False}
+              'persistent_workers':True if workers > 0 and cuda else False}
     return params
 
 

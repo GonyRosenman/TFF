@@ -63,13 +63,12 @@ class Writer():
                     values = getattr(self,title + '_loss_values')
                     if len(values) == 0:
                         continue
-                    iter = self.total_train_steps if set == 'train' else self.eval_iter
                     score = np.mean(values)
                     history = getattr(self,title + '_loss_history')
                     history.append(score)
                     print('{}: {}'.format(title,score))
                     setattr(self,title + '_loss_history',history)
-                    self.scalar_to_tensorboard(title,score,iter)
+                    self.scalar_to_tensorboard(title,score)
 
     def accuracy_summary(self,mid_epoch):
         pred_all_sets = {x:[] for x in self.sets}
@@ -97,7 +96,7 @@ class Writer():
                 metrics[name + '_AUROC'] = self.metrics.AUROC(truth,pred)
 
         for name,value in metrics.items():
-            self.scalar_to_tensorboard(name,value,self.eval_iter)
+            self.scalar_to_tensorboard(name,value)
             if hasattr(self,name):
                 l = getattr(self,name)
                 l.append(value)
@@ -152,6 +151,9 @@ class Writer():
         loss_d.update({'total': {'is_active': True}})
         return loss_d
 
-    def scalar_to_tensorboard(self,tag,scalar,iter):
+    def scalar_to_tensorboard(self,tag,scalar,iter=None):
+        if iter is None:
+            iter = self.total_train_steps if 'train' in tag else self.eval_iter
         if self.tensorboard is not None:
             self.tensorboard.add_scalar(tag,scalar,iter)
+
