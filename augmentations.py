@@ -2,9 +2,9 @@ import torch
 import imgaug.augmenters as iaa
 
 class brain_gaussian(torch.nn.Module):
-    def __init__(self,args):
+    def __init__(self,**kwargs):
         super().__init__()
-        self.p = args.augment_prob
+        self.p = kwargs.get('augment_prob')
         self.blur = {'sigma':(0.0,1)}
         self.noise = {'scale':(0,0.3)}
         if self.p > 0:
