@@ -19,11 +19,13 @@ def get_arguments(base_path):
     parser.add_argument('--intensity_factor', default=1)
     parser.add_argument('--perceptual_factor', default=1)
     parser.add_argument('--reconstruction_factor', default=1)
+    parser.add_argument('--transformer_hidden_layers', default=2)
     parser.add_argument('--fine_tune_task',
                         default='binary_classification',
                         choices=['regression','binary_classification'],
                         help='fine tune model objective. choose binary_classification in case of a binary classification task')
-    parser.add_argument('--pretrain_split', default=0.95)
+    parser.add_argument('--train_split', default=0.7)
+    parser.add_argument('--val_split', default=0.15)
     parser.add_argument('--running_mean_size', default=5000)
 
 
@@ -55,15 +57,15 @@ def get_arguments(base_path):
     ##phase 3
     parser.add_argument('--task_phase3', type=str, default='fine_tune')
     parser.add_argument('--batch_size_phase3', type=int, default=3)
-    parser.add_argument('--validation_frequency_phase3', type=int, default=333)
-    parser.add_argument('--nEpochs_phase3', type=int, default=10)
+    parser.add_argument('--validation_frequency_phase3', type=int, default=200)
+    parser.add_argument('--nEpochs_phase3', type=int, default=30)
     parser.add_argument('--augment_prob_phase3', default=0)
     parser.add_argument('--weight_decay_phase3', default=1e-2)
     parser.add_argument('--lr_init_phase3', default=1e-4)
     parser.add_argument('--lr_gamma_phase3', default=0.9)
-    parser.add_argument('--lr_step_phase3', default=1000)
+    parser.add_argument('--lr_step_phase3', default=1500)
     parser.add_argument('--sequence_length_phase3', default=20)
-    parser.add_argument('--workers_phase3', default=1)
+    parser.add_argument('--workers_phase3', default=0)
     args = parser.parse_args()
     return args
 
@@ -73,6 +75,7 @@ def setup(cuda_num):
     base_path = os.getcwd()
     os.makedirs(os.path.join(base_path,'experiments'),exist_ok=True)
     os.makedirs(os.path.join(base_path,'runs'),exist_ok=True)
+    os.makedirs(os.path.join(base_path, 'splits'), exist_ok=True)
     return base_path
 
 def run_phase(args,loaded_model_weights_path,phase_num,phase_name):
@@ -118,10 +121,10 @@ def main(base_path):
     print('finishing phase 2...')
     #fine tune
     print('starting phase 3...')
-    model_weights_path_phase3 = run_phase(args, model_weights_path_phase2,'3','finetune_{}'.format(args.fine_tune_task))
+    model_weights_path_phase3 = run_phase(args, model_weights_path_phase2,'3','fine_tune_{}'.format(args.fine_tune_task))
     print('finishing phase 3...')
     #test
-    #test(args, model_weights_path_phase3)
+    test(args, model_weights_path_phase3)
 
 
 

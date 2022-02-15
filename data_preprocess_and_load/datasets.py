@@ -10,7 +10,8 @@ class BaseDataset(Dataset):
     def __init__(self):
         super().__init__()
     def register_args(self,**kwargs):
-        self.device = torch.device('cuda') if kwargs.get('cuda') else torch.device('cpu')
+        #todo:decide if keep immedieate load or not
+        self.device = None#torch.device('cuda') if kwargs.get('cuda') else torch.device('cpu')
         self.index_l = []
         self.norm = 'global_normalize'
         self.complementary = 'per_voxel_normalize'
@@ -118,9 +119,64 @@ class ucla(BaseDataset):
             TRs_path = os.path.join(self.data_dir, subject,self.norm)
             session_duration = len(os.listdir(TRs_path)) - self.sample_duration
             diagnosis = torch.tensor([0.0]) if diagnosis == 'CONTROL' else torch.tensor([1.0])
+            #TODO:debug
+            #diagnosis = torch.tensor([1.0, 0.0]) if diagnosis == 'CONTROL' else torch.tensor([0.0, 1.0])
             for k in range(0, session_duration, self.stride):
                 self.index_l.append((i, subject, TRs_path, 'TR_' + str(k), session_duration, diagnosis ))
 
+
+    def __len__(self):
+        N = len(self.index_l)
+        return N
+
+    def __getitem__(self, index):
+        subj_num, subj_name ,TRs_path, TR, session_duration, diagnosis = self.index_l[index]
+        y = self.load_sequence(TRs_path,TR)
+        if self.augment is not None:
+            y = self.augment(y)
+        input_dict = {'fmri_sequence':y,'subject':subj_num ,'subject_binary_classification':diagnosis , 'TR':int(TR.split('_')[1])}
+        return input_dict
+
+class ptsd(BaseDataset):
+    def __init__(self, **kwargs):
+        self.register_args(**kwargs)
+        self.sessions = ['ses-1','ses-2','ses-3']
+        self.root = r'D:\users\Gony\ptsd\ziv'
+        self.meta_data = pd.read_csv(os.path.join(self.root, 'caps.csv'))
+        self.data_dir = os.path.join(self.root, 'MNI_to_TRs')
+        self.subject_names = os.listdir(self.data_dir)
+        self.subjects = len(os.listdir(self.data_dir))
+        self.index_l = []
+        for i,subject in enumerate(os.listdir(self.data_dir)):
+            for session in os.listdir(os.path.join(self.data_dir,subject)):
+                for task in os.listdir(os.path.join(self.data_dir, subject,session)):
+                    ses = str(session[session.find('-')+1])
+                    category1 = "T" + ses + "_TotalCaps4'"
+                    category2 = "T" + ses + "_TotalCaps5'"
+                    category3 = "T" + ses + "_Is PTSD_Final"
+                    score = self.meta_data.loc[self.meta_data['Subject ID'] == int(subject[-4:]),[category1,category2,category3]].values.tolist()[0]
+                    TRs_path = os.path.join(self.data_dir, subject,session,task, self.norm_name)
+                    session_duration = len(os.listdir(TRs_path)) - self.sample_duration
+                    for k in range(0,session_duration, self.stride):
+                        if not any(np.isnan(score)):
+                            self.index_l.append((i, subject[-4:], TRs_path, 'TR_' + str(k), session_duration, (task, session, score[0], score[1], score[2])))
+        if not self.fine_tune:
+            extra_data = self.data_dir.replace('ziv','tom')
+            for j,subj in enumerate(os.listdir(extra_data)):
+                for time in os.listdir(os.path.join(extra_data,subj)):
+                    for session in os.listdir(os.path.join(extra_data,subj,time)):
+                        for task in os.listdir(os.path.join(extra_data,subj,time,session)):
+                            path_to_TRs = os.path.join(extra_data,subj,time,session,task,self.norm_name)
+                            session_duration = len(os.listdir(path_to_TRs)) - self.sample_duration
+                            for k in range(0,session_duration,self.stride):
+                                self.index_l.append((j+i,subj,path_to_TRs, 'TR_' + str(k), session_duration, (task,session,np.nan,np.nan,np.nan)))
+            extra_data = self.data_dir.replace(r'ptsd\ziv','ayam')
+            for k, subject in enumerate(os.listdir(extra_data)):
+                for task in os.listdir(os.path.join(extra_data, subject)):
+                    TRs_path = os.path.join(extra_data, subject, task, self.norm_name)
+                    session_duration = len(os.listdir(TRs_path)) - self.sample_duration
+                    for kk in range(0, session_duration, self.stride):
+                        self.index_l.append((k, subject, TRs_path, 'TR_' + str(kk), session_duration, (task,np.nan, np.nan, np.nan, np.nan)))
 
     def __len__(self):
         N = len(self.index_l)

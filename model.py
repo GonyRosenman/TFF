@@ -28,7 +28,7 @@ class BaseModel(nn.Module, ABC):
         hook1 = encoder.down_block1.register_forward_hook(get_shape)
         hook2 = encoder.down_block3.register_forward_hook(get_shape)
         input_shape = (1,2,) + dim  #batch,norms,H,W,D,time
-        x = torch.rand((input_shape))
+        x = torch.ones((input_shape))
         with torch.no_grad():
             encoder(x)
             del x
@@ -42,7 +42,7 @@ class BaseModel(nn.Module, ABC):
     def register_vars(self,**kwargs):
         intermediate_vec = 2640
         if kwargs.get('task') == 'fine_tune':
-            self.dropout_rates = {'input': 0, 'green': 0.4,'Up_green': 0,'transformer':0.1}
+            self.dropout_rates = {'input': 0, 'green': 0.35,'Up_green': 0,'transformer':0.1}
         else:
             self.dropout_rates = {'input': 0, 'green': 0.2, 'Up_green': 0.2,'transformer':0.1}
 
@@ -62,15 +62,26 @@ class BaseModel(nn.Module, ABC):
 
 
 
-    def load_partial_state_dict(self, state_dict):
+    def load_partial_state_dict(self, state_dict,load_cls_embedding):
         print('loading parameters onto new model...')
         own_state = self.state_dict()
+        loaded = {name:False for name in own_state.keys()}
         for name, param in state_dict.items():
             if name not in own_state:
                 print('notice: {} is not part of new model and was not loaded.'.format(name))
                 continue
+            elif 'cls_embedding' in name and not load_cls_embedding:
+                continue
+            elif 'position' in name and param.shape != own_state[name].shape:
+                print('debug line above')
+                continue
             param = param.data
             own_state[name].copy_(param)
+            loaded[name] = True
+        for name,was_loaded in loaded.items():
+            if not was_loaded:
+                print('notice: named parameter - {} is randomly initialized'.format(name))
+
 
     def save_checkpoint(self, directory, title, epoch, loss,accuracy, optimizer=None,schedule=None):
         # Create directory to save to
@@ -322,6 +333,7 @@ class Encoder_Transformer_finetune(BaseModel):
             self.final_activation_func = nn.LeakyReLU()
         elif kwargs.get('fine_tune_task') == 'binary_classification':
             self.final_activation_func = nn.Sigmoid()
+            self.label_num = 1
         self.regression_head = nn.Sequential(nn.Linear(self.BertConfig.hidden_size, self.label_num),self.final_activation_func)
 
 

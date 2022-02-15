@@ -1,6 +1,6 @@
 from loss_writer import Writer
 from learning_rate import LrHandler
-from data_preprocess_and_load.dataloaders import create_dataloaders
+from data_preprocess_and_load.dataloaders import DataHandler
 import torch
 import warnings
 from tqdm import tqdm
@@ -15,9 +15,9 @@ class Trainer():
     def __init__(self,sets,**kwargs):
         self.register_args(**kwargs)
         self.lr_handler = LrHandler(**kwargs)
-        self.train_loader, self.val_loader, self.test_loader = create_dataloaders(sets, **kwargs)
+        self.train_loader, self.val_loader, _ = DataHandler(**kwargs).create_dataloaders()
         self.create_model()
-        self.initialize_weights()
+        self.initialize_weights(load_cls_embedding=False)
         self.create_optimizer()
         self.lr_handler.set_schedule(self.optimizer)
         self.writer = Writer(sets,**kwargs)
@@ -35,11 +35,11 @@ class Trainer():
         weight_decay = self.kwargs.get('weight_decay')
         self.optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
 
-    def initialize_weights(self):
+    def initialize_weights(self,load_cls_embedding):
         if self.loaded_model_weights_path is not None:
             state_dict = torch.load(self.loaded_model_weights_path)
             self.lr_handler.set_lr(state_dict['lr'])
-            self.model.load_partial_state_dict(state_dict['model_state_dict'])
+            self.model.load_partial_state_dict(state_dict['model_state_dict'],load_cls_embedding)
             self.model.loaded_model_weights_path = self.loaded_model_weights_path
             text = 'loaded model weights:\nmodel location - {}\nlast learning rate - {}\nvalidation loss - {}\n'.format(
                 self.loaded_model_weights_path, state_dict['lr'],state_dict['loss_value'])

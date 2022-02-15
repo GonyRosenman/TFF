@@ -3,77 +3,102 @@ from torch.utils.data import DataLoader,Subset
 from data_preprocess_and_load.datasets import *
 from utils import reproducibility
 
-def get_params(eval=False,**kwargs):
-    batch_size = kwargs.get('batch_size')
-    workers = kwargs.get('workers')
-    cuda = kwargs.get('cuda')
-    if eval:
-        workers = 0
+class DataHandler():
+    def __init__(self,test=False,**kwargs):
+        self.test = test
+        self.kwargs = kwargs
+        self.dataset_name = kwargs.get('dataset_name')
+        self.splits_folder = Path(kwargs.get('base_path')).joinpath('splits',self.dataset_name)
+        self.splits_folder.mkdir(exist_ok=True)
+        self.seed = kwargs.get('seed')
+        self.current_split = self.splits_folder.joinpath('seed_{}.txt'.format(self.seed))
 
-    params = {'batch_size': batch_size,
-              'shuffle': True,
-              'num_workers': workers,
-              'drop_last': True,
-              'pin_memory': False,#True if cuda else False,
-              'persistent_workers':True if workers > 0 and cuda else False}
-    return params
+    def get_dataset(self):
+        if self.dataset_name == 'S1200':
+            return rest_1200_3D
+        elif self.dataset_name == 'ucla':
+            return ucla
+        else:
+            raise NotImplementedError
+
+    def current_split_exists(self):
+        return self.current_split.exists()
+
+    def create_dataloaders(self):
+        reproducibility(**self.kwargs)
+        dataset = self.get_dataset()
+        train_loader = dataset(**self.kwargs)
+        eval_loader = dataset(**self.kwargs)
+        eval_loader.augment = None
+        self.subject_list = train_loader.index_l
+        if self.current_split_exists():
+            train_names, val_names, test_names = self.load_split()
+            train_idx, val_idx, test_idx = self.convert_subject_list_to_idx_list(train_names,val_names,test_names,self.subject_list)
+        else:
+            train_idx,val_idx,test_idx = self.determine_split_randomly(self.subject_list,**self.kwargs)
+
+        # train_idx = [train_idx[x] for x in torch.randperm(len(train_idx))[:10]]
+        # val_idx = [val_idx[x] for x in torch.randperm(len(val_idx))[:10]]
+
+        train_loader = Subset(train_loader, train_idx)
+        val_loader = Subset(eval_loader, val_idx)
+        test_loader = Subset(eval_loader, test_idx)
+
+        training_generator = DataLoader(train_loader, **self.get_params(**self.kwargs))
+        val_generator = DataLoader(val_loader, **self.get_params(eval=True,**self.kwargs))
+        test_generator = DataLoader(test_loader, **self.get_params(eval=True,**self.kwargs))  if self.test else None
+        return training_generator, val_generator, test_generator
 
 
-def determine_split_randomly(index_l,**kwargs):
-    split_percent = kwargs.get('pretrain_split')
-    S = len(np.unique([x[0] for x in index_l]))
-    S_train = int(S * split_percent)
-    S_train = np.random.choice(S, S_train, replace=False)
-    S_val = np.setdiff1d(np.arange(S), S_train)
-    subj_idx = np.array([x[0] for x in index_l])
-    train_idx = np.where(np.in1d(subj_idx, S_train))[0].tolist()
-    val_idx = np.where(np.in1d(subj_idx, S_val))[0].tolist()
-    return train_idx,val_idx,None
+    def get_params(self,eval=False,**kwargs):
+        batch_size = kwargs.get('batch_size')
+        workers = kwargs.get('workers')
+        cuda = kwargs.get('cuda')
+        if eval:
+            workers = 0
+        params = {'batch_size': batch_size,
+                  'shuffle': True,
+                  'num_workers': workers,
+                  'drop_last': True,
+                  'pin_memory': False,  # True if cuda else False,
+                  'persistent_workers': True if workers > 0 and cuda else False}
+        return params
 
-def predetermined_split(subject_order,index_l):
-    subject_order = [x[:-1] for x in subject_order]
-    train_names = subject_order[np.argmax(['train' in line for line in subject_order]) + 1:np.argmax(
-        ['test' in line for line in subject_order])]
-    val_names = subject_order[np.argmax(['val' in line for line in subject_order]) + 1:]
-    test_names = subject_order[np.argmax(['test' in line for line in subject_order]) + 1:np.argmax(
-        ['val' in line for line in subject_order])]
-    subj_names = np.array([x[1] for x in index_l])
-    train_idx = np.where(np.in1d(subj_names, train_names))[0].tolist()
-    train_idx = np.random.permutation(train_idx)
-    val_idx = np.where(np.in1d(subj_names, val_names))[0].tolist()
-    val_idx = np.random.permutation(val_idx)
-    test_idx = np.where(np.in1d(subj_names, test_names))[0].tolist()
-    test_idx = np.random.permutation(test_idx)
-    return train_idx,val_idx,test_idx
+    def save_split(self,sets_dict):
+        with open(self.current_split,'w+') as f:
+            for name,subj_list in sets_dict.items():
+                f.write(name + '\n')
+                for subj_name in subj_list:
+                    f.write(str(subj_name) + '\n')
 
-def create_dataloaders(sets,**kwargs):
-    test = any([set == 'test' for set in sets])
-    reproducibility(**kwargs)
-    train_params = get_params(**kwargs)
-    eval_params = get_params(**kwargs,eval=True)
-    dataset_name = kwargs.get('dataset_name')
-    datasets_dict = {'S1200':{'final_split_path':os.path.join(kwargs.get('base_path'),'data','splits','S1200_final_split_train_test.txt'),
-                              'loader':rest_1200_3D},
-                     'ucla':{'final_split_path':os.path.join(kwargs.get('base_path'),'data','splits','ucla_final_split_train_test.txt'),
-                             'loader':ucla}}
+    def convert_subject_list_to_idx_list(self,train_names,val_names,test_names,subj_list):
+        subj_idx = np.array([str(x[0]) for x in subj_list])
+        train_idx = np.where(np.in1d(subj_idx, train_names))[0].tolist()
+        val_idx = np.where(np.in1d(subj_idx, val_names))[0].tolist()
+        test_idx = np.where(np.in1d(subj_idx, test_names))[0].tolist()
+        return train_idx,val_idx,test_idx
 
-    train_loader = datasets_dict[dataset_name]['loader'](**kwargs)
-    eval_loader = datasets_dict[dataset_name]['loader'](**kwargs)
-    eval_loader.augment = None
-    if not kwargs.get('task') == 'fine_tune':
-        train_idx,val_idx,test_idx = determine_split_randomly(train_loader.index_l,**kwargs)
-    else:
-        subject_order = open(datasets_dict[dataset_name]['final_split_path'], 'r').readlines()
-        train_idx, val_idx, test_idx = predetermined_split(subject_order,train_loader.index_l)
+    def determine_split_randomly(self,index_l,**kwargs):
+        train_percent = kwargs.get('train_split')
+        val_percent = kwargs.get('val_split')
+        S = len(np.unique([x[0] for x in index_l]))
+        S_train = int(S * train_percent)
+        S_val = int(S * val_percent)
+        S_train = np.random.choice(S, S_train, replace=False)
+        remaining = np.setdiff1d(np.arange(S), S_train)
+        S_val = np.random.choice(remaining,S_val, replace=False)
+        S_test = np.setdiff1d(np.arange(S), np.concatenate([S_train,S_val]))
+        train_idx,val_idx,test_idx = self.convert_subject_list_to_idx_list(S_train,S_val,S_test,self.subject_list)
+        self.save_split({'train_subjects':S_train,'val_subjects':S_val,'test_subjects':S_test})
+        return train_idx,val_idx,test_idx
 
-    #train_idx = [train_idx[x] for x in torch.randperm(len(train_idx))[:10]]
-    #val_idx = [val_idx[x] for x in torch.randperm(len(val_idx))[:10]]
-
-    train_loader = Subset(train_loader,train_idx)
-    val_loader = Subset(eval_loader,val_idx)
-    test_loader = Subset(eval_loader, test_idx) if test else None
-
-    training_generator = DataLoader(train_loader, **train_params)
-    val_generator = DataLoader(val_loader, **eval_params)
-    test_generator = DataLoader(test_loader, **eval_params) if test else None
-    return training_generator, val_generator , test_generator
+    def load_split(self):
+        subject_order = open(self.current_split, 'r').readlines()
+        subject_order = [x[:-1] for x in subject_order]
+        train_index = np.argmax(['train' in line for line in subject_order])
+        val_index = np.argmax(['val' in line for line in subject_order])
+        test_index = np.argmax(['test' in line for line in subject_order])
+        train_names = subject_order[train_index + 1:val_index]
+        val_names = subject_order[val_index+1:test_index]
+        test_names = subject_order[test_index + 1:]
+        return train_names,val_names,test_names

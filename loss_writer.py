@@ -40,17 +40,13 @@ class Writer():
             os.makedirs(self.per_subject_predictions)
 
     def save_history_to_csv(self):
-        loss_d = self.append_total_to_losses()
-        for name in loss_d.keys():
-            if loss_d[name]['is_active']:
-                rows = [getattr(self,x) for x in dir(self) if 'history' in x and name in x]
-                column_names = tuple([x for x in dir(self) if 'history' in x and name in x])
-                export_data = zip_longest(*rows, fillvalue='')
-                with open(os.path.join(self.csv_path,name + '.csv'), 'w', encoding="ISO-8859-1", newline='') as myfile:
-                    wr = csv.writer(myfile)
-                    wr.writerow(column_names)
-                    wr.writerows(export_data)
-        #and for total loss
+        rows = [getattr(self, x) for x in dir(self) if 'history' in x and isinstance(getattr(self, x), list)]
+        column_names = tuple([x for x in dir(self) if 'history' in x and isinstance(getattr(self, x), list)])
+        export_data = zip_longest(*rows, fillvalue='')
+        with open(os.path.join(self.csv_path, 'full_scores.csv'), 'w', encoding="ISO-8859-1", newline='') as myfile:
+            wr = csv.writer(myfile)
+            wr.writerow(column_names)
+            wr.writerows(export_data)
 
 
     def loss_summary(self,lr):

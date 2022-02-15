@@ -35,17 +35,18 @@ class Vgg16(nn.Module):
 
     def forward(self, x):
         h = self.to_relu_1_2(x)
-        #h_relu_1_2 = h
+        h_relu_1_2 = h
         h = self.to_relu_2_2(h)
         h_relu_2_2 = h
         h = self.to_relu_3_3(h)
-        h_relu_3_3 = h
-        out = (h_relu_2_2, h_relu_3_3)
+        #h_relu_3_3 = h
+        out = (h_relu_1_2, h_relu_2_2)
         return out
 
 class Percept_Loss(nn.Module):
     def __init__(self,**kwargs):
         super(Percept_Loss, self).__init__()
+        print('notice: changed layers in perceptual back to old version')
         task = kwargs.get('task')
         if task == 'autoencoder_reconstruction':
             self.memory_constraint = 0.25
